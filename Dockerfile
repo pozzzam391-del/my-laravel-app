@@ -23,11 +23,11 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 WORKDIR /var/www/html
 
 # Copy project files
-COPY . /var/www/html    
+COPY . /var/www/html
 
-# Install dependencies without running artisan scripts
+# Install dependencies
 RUN composer install --no-dev --optimize-autoloader --no-scripts
 
-EXPOSE 8000
+EXPOSE 10000
 
-CMD php artisan serve --host=0.0.0.0 --port=8000
+CMD php artisan serve --host=0.0.0.0 --port=10000
