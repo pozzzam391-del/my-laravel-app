@@ -25,13 +25,17 @@ WORKDIR /var/www/html
 # Copy application files
 COPY . /var/www/html
 
+# Force remove vendor folder if copied
+RUN rm -rf /var/www/html/vendor
+
 # Configure Apache DocumentRoot to public
 ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/conf-available/*.conf
 
-# Install composer dependencies safely
+# Clean composer setup
 ENV COMPOSER_ALLOW_SUPERUSER=1
+RUN composer update --lock --no-interaction
 RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts --ignore-platform-reqs
 
 # Set permissions
