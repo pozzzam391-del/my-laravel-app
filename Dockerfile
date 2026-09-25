@@ -1,17 +1,6 @@
-# Stage 1: Install Composer Dependencies
-FROM composer:latest as vendor
-WORKDIR /app
-COPY composer.json composer.lock ./
-RUN composer install \
-    --no-dev \
-    --no-interaction \
-    --no-scripts \
-    --prefer-dist \
-    --ignore-platform-reqs
-
-# Stage 2: Apache PHP Environment
 FROM php:8.2-apache
 
+# Install dependencies
 RUN apt-get update && apt-get install -y \
     git \
     curl \
@@ -21,17 +10,34 @@ RUN apt-get update && apt-get install -y \
     zip \
     unzip
 
+# Install PHP extensions
 RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
+
+# Enable Apache Mod Rewrite
 RUN a2enmod rewrite
 
-WORKDIR /var/www/html
-COPY . /var/www/html
-COPY --from=vendor /app/vendor /var/www/html/vendor
+# Get latest Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
+# Set working directory
+WORKDIR /var/www/html
+
+# Copy application files
+COPY . /var/www/html
+
+# Configure Apache DocumentRoot to public
 ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/conf-available/*.conf
 
+# Remove existing vendor/composer.lock to force clean install
+RUN rm -rf vendor composer.lock
+
+# Install composer dependencies
+ENV COMPOSER_ALLOW_SUPERUSER=1
+RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
+
+# Set permissions
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
 EXPOSE 80
